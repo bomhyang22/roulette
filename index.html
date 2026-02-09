@@ -109,19 +109,6 @@
       box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
     
-    /* 팀 순위표 - 원본 순위표 위에 표시 */
-    #teamScoreboard.visible {
-      display: block !important;
-      z-index: 10000;
-    }
-    
-    /* 원본 Canvas 순위표 영역 가리기 */
-    .roulette-container canvas,
-    canvas {
-      position: relative;
-      z-index: 1;
-    }
-    
     /* 📱 모바일 대응 */
     @media (max-width: 768px) {
       /* 팀 설정 패널 */
@@ -189,11 +176,6 @@
     
     /* 📱 작은 모바일 (iPhone SE 등) */
     @media (max-width: 375px) {
-      #teamScoreboard {
-        width: 120px;
-        font-size: 9px;
-      }
-      
       #gameResult {
         min-width: 260px;
         padding: 15px;
@@ -477,6 +459,10 @@
         'value': allMembers.length,
       });
       window.roulette.start();
+      
+      // 팀 데이터 전달
+      window.roulette.setTeams(teams);
+      
       document.querySelector('#settings').classList.add('hide');
       document.querySelector('#donate').classList.add('hide');
       document.querySelector('#teamScoreboard').classList.add('visible');
@@ -508,6 +494,10 @@
         const team = teams[teamInfo.index];
         if (!team.scores[memberName]) team.scores[memberName] = 0;
         team.scores[memberName] += 10;
+        // 팀 데이터 갱신
+        if (window.roulette) {
+          window.roulette.setTeams(teams);
+        }
       }
     }
     
@@ -702,13 +692,7 @@
   }
 </script>
 
-<!-- 팀 순위표 -->
-<div id="teamScoreboard">
-  <h3>🏆 팀 순위</h3>
-  <div class="mvp-section">
-    <h4>⭐ MVP TOP 3</h4>
-  </div>
-</div>
+<!-- 팀 순위표는 Canvas에 표시됨 -->
 
 <div id="settings" class="settings">
   <div class="right">

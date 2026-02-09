@@ -45,6 +45,7 @@ export class Roulette extends EventTarget {
   private _winner: Marble | null = null;
 
   private _uiObjects: UIObject[] = [];
+  private _rankRenderer!: RankRenderer;
 
   private _autoRecording: boolean = false;
   private _recorder!: VideoRecorder;
@@ -71,6 +72,12 @@ export class Roulette extends EventTarget {
 
   public getZoom() {
     return initialZoom * this._camera.zoom;
+  }
+
+  public setTeams(teams: { name: string; members: string[]; scores: { [member: string]: number } }[]) {
+    if (this._rankRenderer) {
+      this._rankRenderer.setTeams(teams);
+    }
   }
 
   private addUiObject(obj: UIObject) {
@@ -237,6 +244,8 @@ export class Roulette extends EventTarget {
     await this.physics.init();
 
     this.addUiObject(new RankRenderer());
+    this._rankRenderer = new RankRenderer();
+    this.addUiObject(this._rankRenderer);
     this.attachEvent();
     const minimap = new Minimap();
     minimap.onViewportChange((pos) => {
