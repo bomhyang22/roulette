@@ -75,21 +75,31 @@ export class Roulette extends EventTarget {
     return initialZoom * this._camera.zoom;
   }
 
-  public setTeams(teams: { name: string; members: string[] }[]) {
-    this._teamData = teams.map(t => ({ ...t, scores: {} }));
+  public setTeams(teams: { name: string; members: string[]; scores?: { [member: string]: number } }[]) {
+    // scores가 이미 있으면 유지, 없으면 빈 객체로 초기화
+    this._teamData = teams.map(t => ({ 
+      ...t, 
+      scores: t.scores || {} 
+    }));
+    console.log('[DEBUG roulette] setTeams called, teams:', JSON.parse(JSON.stringify(this._teamData)));
     if (this._rankRenderer) {
       this._rankRenderer.setTeams(this._teamData);
     }
   }
 
   private _updateTeamScore(memberName: string) {
+    console.log('[DEBUG roulette] _updateTeamScore called for:', memberName);
+    console.log('[DEBUG roulette] Current _teamData before update:', JSON.parse(JSON.stringify(this._teamData)));
     for (const team of this._teamData) {
       if (team.members.includes(memberName)) {
         if (!team.scores[memberName]) team.scores[memberName] = 0;
         team.scores[memberName] += 10;
+        console.log('[DEBUG roulette] Updated team score:', team.name, memberName, team.scores[memberName]);
         break;
       }
     }
+    console.log('[DEBUG roulette] _teamData after update:', JSON.parse(JSON.stringify(this._teamData)));
+    // RankRenderer에 업데이트된 데이터 전달
     if (this._rankRenderer) {
       this._rankRenderer.setTeams(this._teamData);
     }
@@ -189,6 +199,7 @@ export class Roulette extends EventTarget {
             this._renderer.width,
             this._renderer.height,
           );
+          console.log('[DEBUG roulette] Game ending, final _teamData:', JSON.parse(JSON.stringify(this._teamData)));
           // 게임 완료 이벤트 발행
           this.dispatchEvent(
             new CustomEvent('finish', {
