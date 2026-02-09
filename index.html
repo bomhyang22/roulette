@@ -89,21 +89,75 @@
       background: rgba(100,200,100,0.4);
     }
     
-    /* 팀 순위표 스타일 - 수정됨 */
+    /* 팀 순위표 스타일 - 원본 랭크표 옆에 표시 */
     #teamScoreboard {
       position: fixed;
-      right: 20px;
-      top: 100px;
-      width: 220px;
-      background: rgba(0,0,0,0.9);
-      border-radius: 12px;
-      padding: 15px;
+      right: 10px;
+      top: 10px;
+      width: 200px;
+      background: rgba(0,0,0,0.85);
+      border-radius: 8px;
+      padding: 12px;
       color: #fff;
-      z-index: 10000;
+      z-index: 1000;
       display: none;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.2);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255,255,255,0.15);
+      font-size: 12px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    /* 게임 결과 모달 */
+    #gameResult {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.95);
+      border-radius: 20px;
+      padding: 30px;
+      color: #fff;
+      z-index: 10001;
+      display: none;
+      text-align: center;
+      min-width: 300px;
+      border: 2px solid rgba(255,215,0,0.5);
+      box-shadow: 0 0 50px rgba(255,215,0,0.3);
+    }
+    #gameResult.visible {
+      display: block;
+    }
+    #gameResult h2 {
+      color: #ffd700;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+    #gameResult .winner-team {
+      font-size: 32px;
+      color: #ff6b6b;
+      margin: 15px 0;
+      font-weight: bold;
+    }
+    #gameResult .mvp-section {
+      margin: 20px 0;
+      padding: 15px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+    }
+    #gameResult .btn-restart {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: white;
+      padding: 12px 30px;
+      border-radius: 25px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: transform 0.2s;
+    }
+    #gameResult .btn-restart:hover {
+      transform: scale(1.05);
     }
     #teamScoreboard.visible {
       display: block;
@@ -371,6 +425,7 @@
       }
       
       finishedMarbles = 0; // 게임 시작 시 리셋
+      totalMarbleCount = allMembers.length;
       
       gtag && gtag('event', 'start', {
         'event_category': 'team-roulette',
@@ -401,7 +456,63 @@
 
     // 구슬이 골인할 때마다 팀 점수 업데이트
     let finishedMarbles = 0;
-    const totalMarbles = () => allMembers.length;
+    let totalMarbleCount = 0;
+    
+    function getGameResult() {
+      // 팀별 평균 점수 계산
+      const teamStats = teams.filter(t => t.members.length > 0).map(team => {
+        const memberScores = team.members.map(m => team.scores[m] || 0);
+        const totalScore = memberScores.reduce((a, b) => a + b, 0);
+        const avgScore = team.members.length > 0 ? totalScore / team.members.length : 0;
+        return {
+          name: team.name,
+          avgScore: avgScore,
+          totalScore: totalScore,
+          memberCount: team.members.length
+        };
+      });
+      
+      // 평균 점수로 정렬
+      teamStats.sort((a, b) => b.avgScore - a.avgScore);
+      
+      // MVP 순위
+      const allScores = [];
+      teams.forEach(team => {
+        team.members.forEach(member => {
+          allScores.push({
+            name: member,
+            score: team.scores[member] || 0,
+            team: team.name
+          });
+        });
+      });
+      allScores.sort((a, b) => b.score - a.score);
+      
+      return { teamStats, mvpList: allScores.slice(0, 3) };
+    }
+    
+    function showGameResult() {
+      const { teamStats, mvpList } = getGameResult();
+      const winnerTeam = teamStats[0];
+      
+      const resultHTML = `
+        <h2>🎉 게임 종료! 🎉</h2>
+        <div class="winner-team">🏆 ${winnerTeam.name} 우승!</div>
+        <div style="font-size: 18px; margin: 10px 0;">평균 점수: ${winnerTeam.avgScore.toFixed(2)}점</div>
+        <div class="mvp-section">
+          <h3 style="color: #ffd700; margin-bottom: 10px;">⭐ MVP TOP 3</h3>
+          ${mvpList.map((p, i) => `
+            <div style="margin: 8px 0; font-size: 16px;">
+              ${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'} ${p.name} - ${p.score}점
+            </div>
+          `).join('')}
+        </div>
+        <button class="btn-restart" onclick="location.reload()">🔄 다시 시작</button>
+      `;
+      
+      document.querySelector('#gameResult').innerHTML = resultHTML;
+      document.querySelector('#gameResult').classList.add('visible');
+    }
     
     window.roulette.addEventListener('goal', (e) => {
       const marbleName = e.detail?.marble?.name;
@@ -410,14 +521,10 @@
         finishedMarbles++;
         
         // 모든 구슬이 들어갔으면 게임 종료 처리
-        if (finishedMarbles >= totalMarbles()) {
+        if (finishedMarbles >= totalMarbleCount) {
           setTimeout(() => {
-            ready = false;
-            document.querySelector('#settings').classList.remove('hide');
-            document.querySelector('#donate').classList.remove('hide');
-            document.querySelector('#teamScoreboard').classList.remove('visible');
-            finishedMarbles = 0; // 리셋
-          }, 3000); // 3초 후 설정 화면 복원
+            showGameResult();
+          }, 1000);
         }
       }
     });
@@ -571,6 +678,9 @@
   </div>
 </div>
 
+<!-- 게임 결과 모달 -->
+<div id="gameResult"></div>
+
 <div id="settings" class="settings">
   <div class="right">
     <div class="row">
@@ -624,11 +734,31 @@
 </div>
 
 <div id="notice">
-  <h1>안내</h1>
+  <h1>📋 안내</h1>
   <div class="notice-body">
     <h2>팀 룰렛에 오신 것을 환영합니다!</h2>
-    <p>팀 단위로 구슬 경쟁을 할 수 있습니다.</p>
-    <p>각 팀에 참가자를 배정하고 시작하면, 실시간으로 팀 평균 점수와 MVP 순위가 표시됩니다.</p>
+    <p><strong>품질보안센터 - 보안이행TF 제작</strong></p>
+    <hr style="border: 1px solid rgba(255,255,255,0.2); margin: 15px 0;">
+    <h3>🎮 게임 방법</h3>
+    <ol style="text-align: left; margin-left: 20px; line-height: 1.8;">
+      <li>팀 이름을 원하는 대로 설정하세요</li>
+      <li>각 팀에 참가자를 쉼표(,)로 구분하여 입력하세요</li>
+      <li>"준비" 버튼을 눌러 확인</li>
+      <li>"시작" 버튼으로 게임 시작!</li>
+      <li>실시간으로 팀 순위와 MVP가 표시됩니다</li>
+    </ol>
+    <hr style="border: 1px solid rgba(255,255,255,0.2); margin: 15px 0;">
+    <h3>📊 점수 계산</h3>
+    <ul style="text-align: left; margin-left: 20px; line-height: 1.8;">
+      <li>각 구슬이 들어가면 +10점</li>
+      <li>팀 순위는 <strong>평균 점수</strong>로 계산됩니다</li>
+      <li>인원 수가 달라도 공정하게 경쟁!</li>
+    </ul>
+    <hr style="border: 1px solid rgba(255,255,255,0.2); margin: 15px 0;">
+    <p style="margin-top: 20px; font-size: 14px; color: rgba(255,255,255,0.7);">
+      <strong>제작자:</strong> 품질보안센터 보안이행TF 박성학<br>
+      <strong>원작:</strong> lazygyu/roulette
+    </p>
   </div>
   <div class="notice-action">
     <button id="closeNotice">닫기</button>
