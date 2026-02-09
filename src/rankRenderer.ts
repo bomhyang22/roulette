@@ -174,7 +174,7 @@ export class RankRenderer implements UIObject {
     const topMVP = allScores.slice(0, 3);
 
     const totalHeight = (teamStats.length + topMVP.length + 3) * lineHeight + 20;
-    const boxY = height - totalHeight - 10;
+    const boxY = 50; // 화면 상단에 고정
 
     ctx.save();
     

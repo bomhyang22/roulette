@@ -46,6 +46,7 @@ export class Roulette extends EventTarget {
 
   private _uiObjects: UIObject[] = [];
   private _rankRenderer!: RankRenderer;
+  private _teamData: { name: string; members: string[]; scores: { [member: string]: number } }[] = [];
 
   private _autoRecording: boolean = false;
   private _recorder!: VideoRecorder;
@@ -74,9 +75,23 @@ export class Roulette extends EventTarget {
     return initialZoom * this._camera.zoom;
   }
 
-  public setTeams(teams: { name: string; members: string[]; scores: { [member: string]: number } }[]) {
+  public setTeams(teams: { name: string; members: string[] }[]) {
+    this._teamData = teams.map(t => ({ ...t, scores: {} }));
     if (this._rankRenderer) {
-      this._rankRenderer.setTeams(teams);
+      this._rankRenderer.setTeams(this._teamData);
+    }
+  }
+
+  private _updateTeamScore(memberName: string) {
+    for (const team of this._teamData) {
+      if (team.members.includes(memberName)) {
+        if (!team.scores[memberName]) team.scores[memberName] = 0;
+        team.scores[memberName] += 10;
+        break;
+      }
+    }
+    if (this._rankRenderer) {
+      this._rankRenderer.setTeams(this._teamData);
     }
   }
 
@@ -147,6 +162,10 @@ export class Roulette extends EventTarget {
       }
       if (marble.y > this._stage.goalY) {
         this._winners.push(marble);
+        
+        // 팀 점수 업데이트
+        this._updateTeamScore(marble.name);
+        
         if (this._isRunning && this._winners.length === this._winnerRank + 1) {
           this.dispatchEvent(
             new CustomEvent('goal', { detail: { winner: marble.name } }),
