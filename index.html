@@ -89,21 +89,21 @@
       background: rgba(100,200,100,0.4);
     }
     
-    /* 팀 순위표 스타일 */
+    /* 팀 순위표 스타일 - 수정됨 */
     #teamScoreboard {
       position: fixed;
       right: 20px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 200px;
-      background: rgba(0,0,0,0.85);
+      top: 100px;
+      width: 220px;
+      background: rgba(0,0,0,0.9);
       border-radius: 12px;
       padding: 15px;
       color: #fff;
-      z-index: 100;
+      z-index: 10000;
       display: none;
       backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
     #teamScoreboard.visible {
       display: block;
@@ -369,6 +369,9 @@
         alert('최소 1개 이상의 팀에 참가자를 입력해주세요.');
         return;
       }
+      
+      finishedMarbles = 0; // 게임 시작 시 리셋
+      
       gtag && gtag('event', 'start', {
         'event_category': 'team-roulette',
         'event_label': 'start',
@@ -397,20 +400,26 @@
     });
 
     // 구슬이 골인할 때마다 팀 점수 업데이트
+    let finishedMarbles = 0;
+    const totalMarbles = () => allMembers.length;
+    
     window.roulette.addEventListener('goal', (e) => {
       const marbleName = e.detail?.marble?.name;
       if (marbleName) {
         updateTeamScore(marbleName);
+        finishedMarbles++;
+        
+        // 모든 구슬이 들어갔으면 게임 종료 처리
+        if (finishedMarbles >= totalMarbles()) {
+          setTimeout(() => {
+            ready = false;
+            document.querySelector('#settings').classList.remove('hide');
+            document.querySelector('#donate').classList.remove('hide');
+            document.querySelector('#teamScoreboard').classList.remove('visible');
+            finishedMarbles = 0; // 리셋
+          }, 3000); // 3초 후 설정 화면 복원
+        }
       }
-    });
-    
-    // 게임 종료
-    window.roulette.addEventListener('finished', () => {
-      ready = false;
-      setTimeout(() => {
-        document.querySelector('#settings').classList.remove('hide');
-        document.querySelector('#donate').classList.remove('hide');
-      }, 5000);
     });
 
     window.roulette.addEventListener('message', (e) => {
