@@ -159,6 +159,88 @@
     #gameResult .btn-restart:hover {
       transform: scale(1.05);
     }
+    
+    /* 📱 모바일 대응 */
+    @media (max-width: 768px) {
+      /* 팀 설정 패널 */
+      #settings .left {
+        width: 100% !important;
+        max-width: 100%;
+        padding: 10px;
+      }
+      
+      .team-setup {
+        max-height: 300px;
+      }
+      
+      .team-box input.team-name,
+      .team-box textarea.team-members {
+        font-size: 14px;
+      }
+      
+      /* 순위표 - 모바일에서는 작게 */
+      #teamScoreboard {
+        width: 140px;
+        padding: 8px;
+        font-size: 10px;
+        right: 5px;
+        top: 5px;
+      }
+      
+      #teamScoreboard h3 {
+        font-size: 12px;
+      }
+      
+      .team-rank-item {
+        padding: 4px 0;
+      }
+      
+      .team-rank-item .team-name {
+        font-size: 10px;
+      }
+      
+      .team-rank-item .score {
+        font-size: 11px;
+      }
+      
+      /* 결과 모달 - 모바일 */
+      #gameResult {
+        min-width: 280px;
+        max-width: 90vw;
+        padding: 20px;
+      }
+      
+      #gameResult h2 {
+        font-size: 20px;
+      }
+      
+      #gameResult .winner-team {
+        font-size: 24px;
+      }
+      
+      /* 버튼 크기 조정 */
+      #btnAddTeam {
+        font-size: 12px;
+        padding: 8px;
+      }
+    }
+    
+    /* 📱 작은 모바일 (iPhone SE 등) */
+    @media (max-width: 375px) {
+      #teamScoreboard {
+        width: 120px;
+        font-size: 9px;
+      }
+      
+      #gameResult {
+        min-width: 260px;
+        padding: 15px;
+      }
+      
+      #gameResult .winner-team {
+        font-size: 20px;
+      }
+    }
     #teamScoreboard.visible {
       display: block;
     }
