@@ -108,58 +108,6 @@
       overflow-y: auto;
     }
     
-    /* 게임 결과 모달 */
-    #gameResult {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.95);
-      border-radius: 20px;
-      padding: 30px;
-      color: #fff;
-      z-index: 10001;
-      display: none;
-      text-align: center;
-      min-width: 300px;
-      border: 2px solid rgba(255,215,0,0.5);
-      box-shadow: 0 0 50px rgba(255,215,0,0.3);
-    }
-    #gameResult.visible {
-      display: block;
-    }
-    #gameResult h2 {
-      color: #ffd700;
-      margin-bottom: 20px;
-      font-size: 24px;
-    }
-    #gameResult .winner-team {
-      font-size: 32px;
-      color: #ff6b6b;
-      margin: 15px 0;
-      font-weight: bold;
-    }
-    #gameResult .mvp-section {
-      margin: 20px 0;
-      padding: 15px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 10px;
-    }
-    #gameResult .btn-restart {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border: none;
-      color: white;
-      padding: 12px 30px;
-      border-radius: 25px;
-      font-size: 16px;
-      cursor: pointer;
-      margin-top: 15px;
-      transition: transform 0.2s;
-    }
-    #gameResult .btn-restart:hover {
-      transform: scale(1.05);
-    }
-    
     /* 📱 모바일 대응 */
     @media (max-width: 768px) {
       /* 팀 설정 패널 */
@@ -540,60 +488,13 @@
     let finishedMarbles = 0;
     let totalMarbleCount = 0;
     
-    function getGameResult() {
-      // 팀별 평균 점수 계산
-      const teamStats = teams.filter(t => t.members.length > 0).map(team => {
-        const memberScores = team.members.map(m => team.scores[m] || 0);
-        const totalScore = memberScores.reduce((a, b) => a + b, 0);
-        const avgScore = team.members.length > 0 ? totalScore / team.members.length : 0;
-        return {
-          name: team.name,
-          avgScore: avgScore,
-          totalScore: totalScore,
-          memberCount: team.members.length
-        };
-      });
-      
-      // 평균 점수로 정렬
-      teamStats.sort((a, b) => b.avgScore - a.avgScore);
-      
-      // MVP 순위
-      const allScores = [];
-      teams.forEach(team => {
-        team.members.forEach(member => {
-          allScores.push({
-            name: member,
-            score: team.scores[member] || 0,
-            team: team.name
-          });
-        });
-      });
-      allScores.sort((a, b) => b.score - a.score);
-      
-      return { teamStats, mvpList: allScores.slice(0, 3) };
-    }
-    
-    function showGameResult() {
-      const { teamStats, mvpList } = getGameResult();
-      const winnerTeam = teamStats[0];
-      
-      const resultHTML = `
-        <h2>🎉 게임 종료! 🎉</h2>
-        <div class="winner-team">🏆 ${winnerTeam.name} 우승!</div>
-        <div style="font-size: 18px; margin: 10px 0;">평균 점수: ${winnerTeam.avgScore.toFixed(2)}점</div>
-        <div class="mvp-section">
-          <h3 style="color: #ffd700; margin-bottom: 10px;">⭐ MVP TOP 3</h3>
-          ${mvpList.map((p, i) => `
-            <div style="margin: 8px 0; font-size: 16px;">
-              ${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'} ${p.name} - ${p.score}점
-            </div>
-          `).join('')}
-        </div>
-        <button class="btn-restart" onclick="location.reload()">🔄 다시 시작</button>
-      `;
-      
-      document.querySelector('#gameResult').innerHTML = resultHTML;
-      document.querySelector('#gameResult').classList.add('visible');
+    function updateTeamScore(memberName) {
+      const teamInfo = findTeamByMember(memberName);
+      if (teamInfo) {
+        const team = teams[teamInfo.index];
+        if (!team.scores[memberName]) team.scores[memberName] = 0;
+        team.scores[memberName] += 10;
+      }
     }
     
     window.roulette.addEventListener('goal', (e) => {
@@ -602,11 +503,14 @@
         updateTeamScore(marbleName);
         finishedMarbles++;
         
-        // 모든 구슬이 들어갔으면 게임 종료 처리
+        // 모든 구슬이 들어갔으면 게임 종료 처리 (원본 방식)
         if (finishedMarbles >= totalMarbleCount) {
+          ready = false;
           setTimeout(() => {
-            showGameResult();
-          }, 1000);
+            document.querySelector('#settings').classList.remove('hide');
+            document.querySelector('#donate').classList.remove('hide');
+            finishedMarbles = 0;
+          }, 3000);
         }
       }
     });
@@ -645,8 +549,40 @@
     document.querySelector('#closeNotice').addEventListener('click', () => {
       closeNotice();
     });
+    
+    // 확성기 버튼 - 모바일 터치 대응
+    const btnNotice = document.querySelector('#btnNotice');
+    btnNotice.addEventListener('click', openNotice);
+    btnNotice.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      openNotice();
+    });
 
     function simpleToast(msg) {
+      const toast = document.createElement('div');
+      toast.classList.add('toast');
+      toast.innerHTML = msg;
+
+      if (window.translateElement) {
+        window.translateElement(toast);
+      }
+
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        document.body.removeChild(toast);
+      }, 1200);
+    }
+
+    const checkNotice = () => {
+      const lastViewed = localStorage.getItem(noticeKey);
+      if (lastViewed === null || Number(lastViewed) < currentNotice) {
+        openNotice();
+      }
+    };
+    
+    checkNotice();
+  }
+</script>
       const toast = document.createElement('div');
       toast.classList.add('toast');
       toast.innerHTML = msg;
@@ -760,9 +696,6 @@
   </div>
 </div>
 
-<!-- 게임 결과 모달 -->
-<div id="gameResult"></div>
-
 <div id="settings" class="settings">
   <div class="right">
     <div class="row">
@@ -847,7 +780,6 @@
   </div>
 </div>
 
-<div class="copyright">&copy; 2025-2026.<a href="https://github.com/bomhyang22" target="_blank">bomhyang22</a> <span>원본: <a href="https://lazygyu.github.io/roulette/" target="_blank">lazygyu/roulette</a></span>
-</div>
+<div class="copyright">&copy; 2025-2026.품질보안센터 보안이행TF</div>
 </body>
 </html>
