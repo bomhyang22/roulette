@@ -89,23 +89,37 @@
       background: rgba(100,200,100,0.4);
     }
     
-    /* 팀 순위표 스타일 - 원본 랭크표 옆에 표시 */
+    /* 팀 순위표 스타일 - 원본 랭크표 위에 표시 */
     #teamScoreboard {
       position: fixed;
       right: 10px;
       top: 10px;
-      width: 200px;
-      background: rgba(0,0,0,0.85);
+      width: 180px;
+      background: rgba(0,0,0,0.95);
       border-radius: 8px;
       padding: 12px;
       color: #fff;
-      z-index: 1000;
+      z-index: 10000;
       display: none;
       backdrop-filter: blur(5px);
-      border: 1px solid rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.2);
       font-size: 12px;
       max-height: 80vh;
       overflow-y: auto;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+    
+    /* 팀 순위표 - 원본 순위표 위에 표시 */
+    #teamScoreboard.visible {
+      display: block !important;
+      z-index: 10000;
+    }
+    
+    /* 원본 Canvas 순위표 영역 가리기 */
+    .roulette-container canvas,
+    canvas {
+      position: relative;
+      z-index: 1;
     }
     
     /* 📱 모바일 대응 */
