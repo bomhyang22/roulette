@@ -88,7 +88,7 @@
     #btnAddTeam:hover {
       background: rgba(100,200,100,0.4);
     }
-    
+
     /* 팀 순위표 스타일 - 원본 랭크표 위에 표시 */
     #teamScoreboard {
       position: fixed;
@@ -108,7 +108,7 @@
       overflow-y: auto;
       box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
-    
+
     /* 📱 모바일 대응 */
     @media (max-width: 768px) {
       /* 팀 설정 패널 */
@@ -117,16 +117,16 @@
         max-width: 100%;
         padding: 10px;
       }
-      
+
       .team-setup {
         max-height: 300px;
       }
-      
+
       .team-box input.team-name,
       .team-box textarea.team-members {
         font-size: 14px;
       }
-      
+
       /* 순위표 - 모바일에서는 작게 */
       #teamScoreboard {
         width: 140px;
@@ -135,52 +135,52 @@
         right: 5px;
         top: 5px;
       }
-      
+
       #teamScoreboard h3 {
         font-size: 12px;
       }
-      
+
       .team-rank-item {
         padding: 4px 0;
       }
-      
+
       .team-rank-item .team-name {
         font-size: 10px;
       }
-      
+
       .team-rank-item .score {
         font-size: 11px;
       }
-      
+
       /* 결과 모달 - 모바일 */
       #gameResult {
         min-width: 280px;
         max-width: 90vw;
         padding: 20px;
       }
-      
+
       #gameResult h2 {
         font-size: 20px;
       }
-      
+
       #gameResult .winner-team {
         font-size: 24px;
       }
-      
+
       /* 버튼 크기 조정 */
       #btnAddTeam {
         font-size: 12px;
         padding: 8px;
       }
     }
-    
+
     /* 📱 작은 모바일 (iPhone SE 등) */
     @media (max-width: 375px) {
       #gameResult {
         min-width: 260px;
         padding: 15px;
       }
-      
+
       #gameResult .winner-team {
         font-size: 20px;
       }
@@ -245,7 +245,7 @@
     .mvp-item .mvp-score {
       color: #fff;
     }
-    
+
     /* 반응형 */
     @media (max-width: 1200px) {
       #teamScoreboard {
@@ -274,13 +274,13 @@
   // ===== 팀 데이터 관리 =====
   let teams = [];
   let teamCount = 2; // 기본 2개 팀
-  
+
   // 팀 데이터 구조
   // teams = [
   //   { name: '레드팀', members: ['김철수', '박영희'], scores: {} },
   //   { name: '블루팀', members: ['최민수'], scores: {} }
   // ]
-  
+
   function initTeams() {
     teams = [];
     for (let i = 0; i < teamCount; i++) {
@@ -293,11 +293,11 @@
     }
     renderTeamInputs();
   }
-  
+
   function renderTeamInputs() {
     const container = document.querySelector('#teamSetup');
     container.innerHTML = '';
-    
+
     teams.forEach((team, index) => {
       const teamDiv = document.createElement('div');
       teamDiv.className = 'team-box';
@@ -308,7 +308,7 @@
       `;
       container.appendChild(teamDiv);
     });
-    
+
     // 이벤트 리스너 추가
     document.querySelectorAll('.team-name').forEach(input => {
       input.addEventListener('input', (e) => {
@@ -316,7 +316,7 @@
         teams[idx].name = e.target.value;
       });
     });
-    
+
     document.querySelectorAll('.team-members').forEach(textarea => {
       textarea.addEventListener('input', (e) => {
         const idx = parseInt(e.target.dataset.index);
@@ -327,7 +327,7 @@
       });
     });
   }
-  
+
   function addTeam() {
     if (teamCount >= 6) {
       alert('최대 6개 팀까지 가능합니다.');
@@ -341,9 +341,9 @@
     });
     renderTeamInputs();
   }
-  
+
   let allMembers = [];
-  
+
   function updateAllMembers() {
     allMembers = [];
     teams.forEach(team => {
@@ -356,11 +356,11 @@
       });
     });
   }
-  
+
   function getNames() {
     return allMembers.map(m => m.name);
   }
-  
+
   function findTeamByMember(name) {
     const member = allMembers.find(m => m.name === name);
     return member ? { name: member.team, index: member.teamIndex } : null;
@@ -383,29 +383,29 @@
 
   function getReady() {
     updateAllMembers();
-    
+
     // 유효성 검사
     const validTeams = teams.filter(t => t.members.length > 0);
     if (validTeams.length < 1) {
       ready = false;
       return;
     }
-    
+
     const names = getNames();
     if (names.length === 0) {
       ready = false;
       return;
     }
-    
+
     // 팀 점수 초기화
     teams.forEach(team => {
       team.scores = {};
       team.members.forEach(m => team.scores[m] = 0);
     });
-    
+
     window.roulette.setMarbles(names);
     ready = true;
-    
+
     localStorage.setItem('tr_teams', JSON.stringify(teams.map(t => ({ name: t.name, members: t.members }))));
   }
 
@@ -422,10 +422,10 @@
       return;
     }
     console.log('initializing start');
-    
+
     // 팀 초기화
     initTeams();
-    
+
     // 저장된 팀 데이터 불러오기
     const savedTeams = localStorage.getItem('tr_teams');
     if (savedTeams) {
@@ -449,20 +449,20 @@
         alert('최소 1개 이상의 팀에 참가자를 입력해주세요.');
         return;
       }
-      
+
       finishedMarbles = 0; // 게임 시작 시 리셋
       totalMarbleCount = allMembers.length;
-      
+
       gtag && gtag('event', 'start', {
         'event_category': 'team-roulette',
         'event_label': 'start',
         'value': allMembers.length,
       });
       window.roulette.start();
-      
+
       // 팀 데이터 전달
       window.roulette.setTeams(teams);
-      
+
       document.querySelector('#settings').classList.add('hide');
       document.querySelector('#donate').classList.add('hide');
       document.querySelector('#teamScoreboard').classList.add('visible');
@@ -494,6 +494,8 @@
       const isLast = detail.isLast;
       const rank = detail.rank;
 
+      console.log('[DEBUG] goal event:', { marbleName, isLast, rank });
+
       if (marbleName) {
         updateTeamScore(marbleName);
         finishedMarbles = rank || finishedMarbles + 1;
@@ -501,11 +503,11 @@
 
       // 마지막 구슬이면 종료 처리
       if (isLast) {
+        console.log('[DEBUG] Last marble! Game ending...');
         ready = false;
         setTimeout(() => {
           document.querySelector('#settings').classList.remove('hide');
           document.querySelector('#donate').classList.remove('hide');
-          document.querySelector('#teamScoreboard').classList.remove('visible');
           finishedMarbles = 0;
         }, 3000);
       }
@@ -523,11 +525,14 @@
 
     // 팀 점수 관리 함수
     function updateTeamScore(memberName) {
+      console.log('[DEBUG] updateTeamScore called:', memberName);
       const teamInfo = findTeamByMember(memberName);
+      console.log('[DEBUG] teamInfo:', teamInfo);
       if (teamInfo) {
         const team = teams[teamInfo.index];
         if (!team.scores[memberName]) team.scores[memberName] = 0;
         team.scores[memberName] += 10;
+        console.log('[DEBUG] Updated score:', memberName, team.scores[memberName], 'Team:', team.name);
         // 실시간 업데이트를 위해 roulette에 데이터 전달
         if (window.roulette) {
           window.roulette.setTeams(teams);
@@ -538,7 +543,12 @@
 
     function updateTeamScoreboard() {
       const container = document.querySelector('#teamScoreboard');
-      if (!container) return;
+      if (!container) {
+        console.log('[DEBUG] teamScoreboard container not found');
+        return;
+      }
+
+      console.log('[DEBUG] updateTeamScoreboard called, teams:', teams);
 
       // 팀별 평균 점수 계산
       const teamStats = teams.filter(t => t.members.length > 0).map(team => {
@@ -552,6 +562,8 @@
           memberCount: team.members.length
         };
       });
+
+      console.log('[DEBUG] teamStats:', teamStats);
 
       // 평균 점수로 정렬
       teamStats.sort((a, b) => b.avgScore - a.avgScore);
@@ -594,8 +606,9 @@
         `;
       });
       mvpHTML += '</div>';
-
+      
       container.innerHTML = teamHTML + mvpHTML;
+      console.log('[DEBUG] Scoreboard updated');
     }
 
     // 최종 결과 표시
@@ -712,7 +725,7 @@
     document.querySelector('#closeNotice').addEventListener('click', () => {
       closeNotice();
     });
-    
+
     // 확성기 버튼 - 모바일 터치 대응
     const btnNotice = document.querySelector('#btnNotice');
     btnNotice.addEventListener('click', openNotice);
@@ -742,7 +755,7 @@
         openNotice();
       }
     };
-    
+
     checkNotice();
   }
 </script>
