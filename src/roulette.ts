@@ -162,38 +162,41 @@ export class Roulette extends EventTarget {
       }
       if (marble.y > this._stage.goalY) {
         this._winners.push(marble);
-        
+
         // 팀 점수 업데이트
         this._updateTeamScore(marble.name);
-        
-        if (this._isRunning && this._winners.length === this._winnerRank + 1) {
-          this.dispatchEvent(
-            new CustomEvent('goal', { detail: { winner: marble.name } }),
-          );
+
+        // 모든 구슬이 골인했는지 확인
+        const isLastMarble = this._winners.length === this._totalMarbleCount;
+
+        // goal 이벤트 발행 (매 골인마다)
+        this.dispatchEvent(
+          new CustomEvent('goal', {
+            detail: {
+              marble: { name: marble.name },
+              rank: this._winners.length,
+              total: this._totalMarbleCount,
+              isLast: isLastMarble,
+            },
+          }),
+        );
+
+        // 마지막 구슬이면 게임 종료
+        if (this._isRunning && isLastMarble) {
           this._winner = marble;
           this._isRunning = false;
           this._particleManager.shot(
             this._renderer.width,
             this._renderer.height,
           );
-          setTimeout(() => {
-            this._recorder.stop();
-          }, 1000);
-        } else if (
-          this._isRunning &&
-          this._winnerRank === this._winners.length &&
-          this._winnerRank === this._totalMarbleCount - 1
-        ) {
+          // 게임 완료 이벤트 발행
           this.dispatchEvent(
-            new CustomEvent('goal', {
-              detail: { winner: this._marbles[i + 1].name },
+            new CustomEvent('finish', {
+              detail: {
+                winners: this._winners,
+                teams: this._teamData,
+              },
             }),
-          );
-          this._winner = this._marbles[i + 1];
-          this._isRunning = false;
-          this._particleManager.shot(
-            this._renderer.width,
-            this._renderer.height,
           );
           setTimeout(() => {
             this._recorder.stop();

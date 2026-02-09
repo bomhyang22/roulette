@@ -487,37 +487,196 @@
     // 구슬이 골인할 때마다 팀 점수 업데이트
     let finishedMarbles = 0;
     let totalMarbleCount = 0;
-    
+
+    window.roulette.addEventListener('goal', (e) => {
+      const detail = e.detail || {};
+      const marbleName = detail.marble?.name;
+      const isLast = detail.isLast;
+      const rank = detail.rank;
+
+      if (marbleName) {
+        updateTeamScore(marbleName);
+        finishedMarbles = rank || finishedMarbles + 1;
+      }
+
+      // 마지막 구슬이면 종료 처리
+      if (isLast) {
+        ready = false;
+        setTimeout(() => {
+          document.querySelector('#settings').classList.remove('hide');
+          document.querySelector('#donate').classList.remove('hide');
+          document.querySelector('#teamScoreboard').classList.remove('visible');
+          finishedMarbles = 0;
+        }, 3000);
+      }
+    });
+
+    // 게임 완료 이벤트 - 최종 결과 표시
+    window.roulette.addEventListener('finish', (e) => {
+      const detail = e.detail || {};
+      const winners = detail.winners || [];
+      const teamsData = detail.teams || [];
+
+      // 최종 결과 계산 및 표시
+      showFinalResult(teamsData, winners);
+    });
+
+    // 팀 점수 관리 함수
     function updateTeamScore(memberName) {
       const teamInfo = findTeamByMember(memberName);
       if (teamInfo) {
         const team = teams[teamInfo.index];
         if (!team.scores[memberName]) team.scores[memberName] = 0;
         team.scores[memberName] += 10;
-        // 팀 데이터 갱신
+        // 실시간 업데이트를 위해 roulette에 데이터 전달
         if (window.roulette) {
           window.roulette.setTeams(teams);
         }
+        updateTeamScoreboard();
       }
     }
-    
-    window.roulette.addEventListener('goal', (e) => {
-      const marbleName = e.detail?.marble?.name;
-      if (marbleName) {
-        updateTeamScore(marbleName);
-        finishedMarbles++;
-        
-        // 모든 구슬이 들어갔으면 게임 종료 처리 (원본 방식)
-        if (finishedMarbles >= totalMarbleCount) {
-          ready = false;
-          setTimeout(() => {
-            document.querySelector('#settings').classList.remove('hide');
-            document.querySelector('#donate').classList.remove('hide');
-            finishedMarbles = 0;
-          }, 3000);
-        }
+
+    function updateTeamScoreboard() {
+      const container = document.querySelector('#teamScoreboard');
+      if (!container) return;
+
+      // 팀별 평균 점수 계산
+      const teamStats = teams.filter(t => t.members.length > 0).map(team => {
+        const memberScores = team.members.map(m => team.scores[m] || 0);
+        const totalScore = memberScores.reduce((a, b) => a + b, 0);
+        const avgScore = team.members.length > 0 ? totalScore / team.members.length : 0;
+        return {
+          name: team.name,
+          avgScore: avgScore,
+          totalScore: totalScore,
+          memberCount: team.members.length
+        };
+      });
+
+      // 평균 점수로 정렬
+      teamStats.sort((a, b) => b.avgScore - a.avgScore);
+
+      // 팀 순위 HTML
+      let teamHTML = '<h3>🏆 팀 순위</h3>';
+      teamStats.forEach((stat, index) => {
+        const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+        teamHTML += `
+          <div class="team-rank-item">
+            <span class="rank">${rankEmoji}</span>
+            <span class="team-name">${stat.name}</span>
+            <span class="score">${stat.avgScore.toFixed(2)}</span>
+          </div>
+        `;
+      });
+
+      // MVP 순위 (전체 개인 순위)
+      const allScores = [];
+      teams.forEach(team => {
+        team.members.forEach(member => {
+          allScores.push({
+            name: member,
+            score: team.scores[member] || 0,
+            team: team.name
+          });
+        });
+      });
+      allScores.sort((a, b) => b.score - a.score);
+
+      let mvpHTML = '<div class="mvp-section"><h4>⭐ MVP TOP 3</h4>';
+      allScores.slice(0, 3).forEach((player, index) => {
+        const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+        mvpHTML += `
+          <div class="mvp-item">
+            <span class="mvp-rank">${rankEmoji}</span>
+            <span class="mvp-name">${player.name}</span>
+            <span class="mvp-score">${player.score}점</span>
+          </div>
+        `;
+      });
+      mvpHTML += '</div>';
+
+      container.innerHTML = teamHTML + mvpHTML;
+    }
+
+    // 최종 결과 표시
+    function showFinalResult(teamsData, winners) {
+      // 1등 팀 계산
+      const teamStats = teamsData
+        .filter(t => t.members.length > 0)
+        .map(team => {
+          const memberScores = team.members.map(m => team.scores[m] || 0);
+          const totalScore = memberScores.reduce((a, b) => a + b, 0);
+          const avgScore = team.members.length > 0 ? totalScore / team.members.length : 0;
+          return { name: team.name, avgScore, totalScore };
+        })
+        .sort((a, b) => b.avgScore - a.avgScore);
+
+      const winnerTeam = teamStats[0];
+
+      // 모달로 결과 표시
+      const modal = document.createElement('div');
+      modal.id = 'gameResult';
+      modal.innerHTML = `
+        <div class="result-content">
+          <h2>🎉 게임 종료!</h2>
+          <div class="winner-section">
+            <h3>🏆 우승 팀</h3>
+            <div class="winner-team">${winnerTeam?.name || '-'}</div>
+            <div class="winner-score">평균: ${winnerTeam?.avgScore.toFixed(2) || '0.00'}</div>
+          </div>
+          <div class="mvp-section">
+            <h4>⭐ MVP TOP 3</h4>
+            <div id="mvpList"></div>
+          </div>
+          <button onclick="this.closest('#gameResult').remove()">닫기</button>
+        </div>
+      `;
+
+      // 스타일 추가
+      modal.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.95);
+        border: 2px solid #ffd700;
+        border-radius: 16px;
+        padding: 30px;
+        z-index: 100000;
+        color: #fff;
+        min-width: 300px;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      `;
+
+      document.body.appendChild(modal);
+
+      // MVP 리스트 채우기
+      const allScores = [];
+      teamsData.forEach(team => {
+        team.members.forEach(member => {
+          allScores.push({ name: member, score: team.scores[member] || 0 });
+        });
+      });
+      allScores.sort((a, b) => b.score - a.score);
+
+      const mvpList = modal.querySelector('#mvpList');
+      if (mvpList) {
+        mvpList.innerHTML = allScores.slice(0, 3).map((p, i) => `
+          <div style="margin: 8px 0; font-size: ${18 - i * 2}px;">
+            ${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'} ${p.name}: ${p.score}점
+          </div>
+        `).join('');
       }
-    });
+    }
+
+    function resetTeamScores() {
+      teams.forEach(team => {
+        team.scores = {};
+        team.members.forEach(m => team.scores[m] = 0);
+      });
+      updateTeamScoreboard();
+    }
 
     window.roulette.addEventListener('message', (e) => {
       simpleToast(e.detail);
@@ -584,110 +743,6 @@
       }
     };
     
-    checkNotice();
-  }
-</script>
-      const toast = document.createElement('div');
-      toast.classList.add('toast');
-      toast.innerHTML = msg;
-
-      if (window.translateElement) {
-        window.translateElement(toast);
-      }
-
-      document.body.appendChild(toast);
-      setTimeout(() => {
-        document.body.removeChild(toast);
-      }, 1200);
-    }
-    
-    // 팀 점수 관리 함수
-    function resetTeamScores() {
-      teams.forEach(team => {
-        team.scores = {};
-        team.members.forEach(m => team.scores[m] = 0);
-      });
-      updateTeamScoreboard();
-    }
-    
-    function updateTeamScore(memberName) {
-      const teamInfo = findTeamByMember(memberName);
-      if (teamInfo) {
-        const team = teams[teamInfo.index];
-        if (!team.scores[memberName]) team.scores[memberName] = 0;
-        team.scores[memberName] += 10; // 고정 10점
-        updateTeamScoreboard();
-      }
-    }
-    
-    function updateTeamScoreboard() {
-      const container = document.querySelector('#teamScoreboard');
-      
-      // 팀별 평균 점수 계산
-      const teamStats = teams.filter(t => t.members.length > 0).map(team => {
-        const memberScores = team.members.map(m => team.scores[m] || 0);
-        const totalScore = memberScores.reduce((a, b) => a + b, 0);
-        const avgScore = team.members.length > 0 ? totalScore / team.members.length : 0;
-        return {
-          name: team.name,
-          avgScore: avgScore,
-          totalScore: totalScore,
-          memberCount: team.members.length
-        };
-      });
-      
-      // 평균 점수로 정렬
-      teamStats.sort((a, b) => b.avgScore - a.avgScore);
-      
-      // 팀 순위 HTML
-      let teamHTML = '<h3>🏆 팀 순위</h3>';
-      teamStats.forEach((stat, index) => {
-        const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-        teamHTML += `
-          <div class="team-rank-item">
-            <span class="rank">${rankEmoji}</span>
-            <span class="team-name">${stat.name}</span>
-            <span class="score">${stat.avgScore.toFixed(2)}</span>
-          </div>
-        `;
-      });
-      
-      // MVP 순위 (전체 개인 순위)
-      const allScores = [];
-      teams.forEach(team => {
-        team.members.forEach(member => {
-          allScores.push({
-            name: member,
-            score: team.scores[member] || 0,
-            team: team.name
-          });
-        });
-      });
-      allScores.sort((a, b) => b.score - a.score);
-      
-      let mvpHTML = '<div class="mvp-section"><h4>⭐ MVP TOP 3</h4>';
-      allScores.slice(0, 3).forEach((player, index) => {
-        const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
-        mvpHTML += `
-          <div class="mvp-item">
-            <span class="mvp-rank">${rankEmoji}</span>
-            <span class="mvp-name">${player.name}</span>
-            <span class="mvp-score">${player.score}점</span>
-          </div>
-        `;
-      });
-      mvpHTML += '</div>';
-      
-      container.innerHTML = teamHTML + mvpHTML;
-    }
-
-    const checkNotice = () => {
-      const lastViewed = localStorage.getItem(noticeKey);
-      if (lastViewed === null || Number(lastViewed) < currentNotice) {
-        openNotice();
-      }
-    };
-
     checkNotice();
   }
 </script>
