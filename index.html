@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-5899C1DJM0"></script>
 
-  <title>Marble Roulette</title>
+  <title>팀 룰렛 - Team Roulette</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="apple-touch-icon" sizes="57x57" href="assets/apple-icon-57x57.png">
   <link rel="apple-touch-icon" sizes="60x60" href="assets/apple-icon-60x60.png">
@@ -26,14 +26,158 @@
   <meta name="msapplication-TileImage" content="assets/ms-icon-144x144.png">
   <meta name="theme-color" content="#ffffff">
 
-  <meta name="description" content="A lucky draw by dropping marbles, made by lazygyu">
-  <meta property="og:url" content="https://lazygyu.github.io/roulette/">
-  <meta property="og:title" content="Marble Roulette">
-  <meta property="og:description" content="A lucky draw by dropping marbles, made by lazygyu">
-  <meta property="og:site_name" content="lazygyu.github.io">
+  <meta name="description" content="팀 단위 구슬 룰렛 - 실시간 팀 순위 경쟁">
+  <meta property="og:url" content="https://bomhyang22.github.io/roulette/">
+  <meta property="og:title" content="팀 룰렛">
+  <meta property="og:description" content="팀 단위 구슬 룰렛 - 실시간 팀 순위 경쟁">
+  <meta property="og:site_name" content="bomhyang22.github.io">
   <meta property="og:type" content="website">
 
   <link rel='stylesheet' href='assets/style.scss' />
+  <style>
+    /* 팀 설정 UI 스타일 */
+    .team-setup {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      max-height: 400px;
+      overflow-y: auto;
+      padding-right: 10px;
+    }
+    .team-box {
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .team-box input.team-name {
+      width: 100%;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .team-box textarea.team-members {
+      width: 100%;
+      height: 60px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 12px;
+      resize: vertical;
+    }
+    .team-box .member-count {
+      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+      margin-top: 4px;
+    }
+    #btnAddTeam {
+      background: rgba(100,200,100,0.3);
+      border: 1px dashed rgba(100,200,100,0.5);
+      color: #8f8;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    #btnAddTeam:hover {
+      background: rgba(100,200,100,0.4);
+    }
+    
+    /* 팀 순위표 스타일 */
+    #teamScoreboard {
+      position: fixed;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 200px;
+      background: rgba(0,0,0,0.85);
+      border-radius: 12px;
+      padding: 15px;
+      color: #fff;
+      z-index: 100;
+      display: none;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    #teamScoreboard.visible {
+      display: block;
+    }
+    #teamScoreboard h3 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 8px;
+    }
+    .team-rank-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .team-rank-item:last-child {
+      border-bottom: none;
+    }
+    .team-rank-item .rank {
+      font-weight: bold;
+      width: 24px;
+    }
+    .team-rank-item .team-name {
+      flex: 1;
+      margin-left: 8px;
+      font-size: 13px;
+    }
+    .team-rank-item .score {
+      font-weight: bold;
+      color: #ff6;
+    }
+    .mvp-section {
+      margin-top: 15px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+    .mvp-section h4 {
+      margin: 0 0 8px 0;
+      font-size: 13px;
+      color: #fd6;
+      text-align: center;
+    }
+    .mvp-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      font-size: 12px;
+    }
+    .mvp-item .mvp-rank {
+      color: #fd6;
+      width: 20px;
+    }
+    .mvp-item .mvp-name {
+      flex: 1;
+    }
+    .mvp-item .mvp-score {
+      color: #fff;
+    }
+    
+    /* 반응형 */
+    @media (max-width: 1200px) {
+      #teamScoreboard {
+        width: 160px;
+        right: 10px;
+        padding: 10px;
+      }
+      #teamScoreboard h3 {
+        font-size: 14px;
+      }
+    }
+  </style>
 </head>
 <body>
 <script type="module" src="./src/index.ts"></script>
@@ -47,9 +191,99 @@
   gtag('js', new Date());
   gtag('config', 'G-5899C1DJM0');
 
+  // ===== 팀 데이터 관리 =====
+  let teams = [];
+  let teamCount = 2; // 기본 2개 팀
+  
+  // 팀 데이터 구조
+  // teams = [
+  //   { name: '레드팀', members: ['김철수', '박영희'], scores: {} },
+  //   { name: '블루팀', members: ['최민수'], scores: {} }
+  // ]
+  
+  function initTeams() {
+    teams = [];
+    for (let i = 0; i < teamCount; i++) {
+      const defaultNames = ['레드팀', '블루팀', '그린팀', '옐로팀', '퍼플팀'];
+      teams.push({
+        name: defaultNames[i] || `팀${i+1}`,
+        members: [],
+        scores: {}
+      });
+    }
+    renderTeamInputs();
+  }
+  
+  function renderTeamInputs() {
+    const container = document.querySelector('#teamSetup');
+    container.innerHTML = '';
+    
+    teams.forEach((team, index) => {
+      const teamDiv = document.createElement('div');
+      teamDiv.className = 'team-box';
+      teamDiv.innerHTML = `
+        <input type="text" class="team-name" data-index="${index}" placeholder="팀 이름" value="${team.name}">
+        <textarea class="team-members" data-index="${index}" placeholder="팀원 이름을 쉼표(,)로 구분해서 입력">${team.members.join(', ')}</textarea>
+        <div class="member-count">${team.members.length}명</div>
+      `;
+      container.appendChild(teamDiv);
+    });
+    
+    // 이벤트 리스너 추가
+    document.querySelectorAll('.team-name').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const idx = parseInt(e.target.dataset.index);
+        teams[idx].name = e.target.value;
+      });
+    });
+    
+    document.querySelectorAll('.team-members').forEach(textarea => {
+      textarea.addEventListener('input', (e) => {
+        const idx = parseInt(e.target.dataset.index);
+        const value = e.target.value;
+        teams[idx].members = value.split(/[,\r\n]/g).map(v => v.trim()).filter(v => !!v);
+        e.target.nextElementSibling.textContent = `${teams[idx].members.length}명`;
+        updateAllMembers();
+      });
+    });
+  }
+  
+  function addTeam() {
+    if (teamCount >= 6) {
+      alert('최대 6개 팀까지 가능합니다.');
+      return;
+    }
+    teamCount++;
+    teams.push({
+      name: `팀${teamCount}`,
+      members: [],
+      scores: {}
+    });
+    renderTeamInputs();
+  }
+  
+  let allMembers = [];
+  
+  function updateAllMembers() {
+    allMembers = [];
+    teams.forEach(team => {
+      team.members.forEach(member => {
+        allMembers.push({
+          name: member,
+          team: team.name,
+          teamIndex: teams.indexOf(team)
+        });
+      });
+    });
+  }
+  
   function getNames() {
-    const value = document.querySelector('#in_names').value.trim();
-    return value.split(/[,\r\n]/g).map(v => v.trim()).filter(v => !!v);
+    return allMembers.map(m => m.name);
+  }
+  
+  function findTeamByMember(name) {
+    const member = allMembers.find(m => m.name === name);
+    return member ? { name: member.team, index: member.teamIndex } : null;
   }
 
   function parseName(nameStr) {
@@ -68,44 +302,34 @@
   }
 
   function getReady() {
+    updateAllMembers();
+    
+    // 유효성 검사
+    const validTeams = teams.filter(t => t.members.length > 0);
+    if (validTeams.length < 1) {
+      ready = false;
+      return;
+    }
+    
     const names = getNames();
+    if (names.length === 0) {
+      ready = false;
+      return;
+    }
+    
+    // 팀 점수 초기화
+    teams.forEach(team => {
+      team.scores = {};
+      team.members.forEach(m => team.scores[m] = 0);
+    });
+    
     window.roulette.setMarbles(names);
-    ready = names.length > 0;
-    localStorage.setItem('mbr_names', names.join(','));
-    switch (winnerType) {
-      case 'first':
-        setWinnerRank(1);
-        break;
-      case 'last':
-        const total = window.roulette.getCount();
-        setWinnerRank(total);
-        break;
-    }
+    ready = true;
+    
+    localStorage.setItem('tr_teams', JSON.stringify(teams.map(t => ({ name: t.name, members: t.members }))));
   }
-
-  function setWinnerRank(rank) {
-    document.querySelector('#in_winningRank').value = rank;
-    window.options.winningRank = rank - 1;
-    window.roulette.setWinningRank(window.options.winningRank);
-
-    if (winnerType === 'first') {
-      document.querySelector('.btn-first-winner').classList.toggle('active', true);
-      document.querySelector('.btn-last-winner').classList.toggle('active', false);
-      document.querySelector('#in_winningRank').classList.toggle('active', false);
-    } else if (winnerType === 'last') {
-      document.querySelector('.btn-first-winner').classList.toggle('active', false);
-      document.querySelector('.btn-last-winner').classList.toggle('active', true);
-      document.querySelector('#in_winningRank').classList.toggle('active', false);
-    } else if (winnerType === 'custom') {
-      document.querySelector('.btn-first-winner').classList.toggle('active', false);
-      document.querySelector('.btn-last-winner').classList.toggle('active', false);
-      document.querySelector('#in_winningRank').classList.toggle('active', true);
-    }
-  }
-
 
   let ready = false;
-  let winnerType = 'first';
 
   document.addEventListener('DOMContentLoaded', () => {
     initialize();
@@ -118,67 +342,43 @@
       return;
     }
     console.log('initializing start');
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const namesFromUrl = urlParams.get('names');
-
-    if (namesFromUrl) {
-      document.querySelector('#in_names').value = namesFromUrl.replace(/,/g, '\n');
-    } else {
-      const savedNames = localStorage.getItem('mbr_names');
-      if (savedNames) {
-        document.querySelector('#in_names').value = savedNames;
+    
+    // 팀 초기화
+    initTeams();
+    
+    // 저장된 팀 데이터 불러오기
+    const savedTeams = localStorage.getItem('tr_teams');
+    if (savedTeams) {
+      try {
+        const parsed = JSON.parse(savedTeams);
+        teamCount = parsed.length;
+        teams = parsed.map(t => ({ ...t, scores: {} }));
+        renderTeamInputs();
+      } catch(e) {
+        console.log('Failed to load saved teams');
       }
     }
-    document.querySelector('#in_names').addEventListener('input', () => {
-      getReady();
-    });
 
-    document.querySelector('#in_names').addEventListener('blur', () => {
-      const nameSource = getNames();
-      const nameSet = new Set();
-      const nameCounts = {};
-      nameSource.forEach(nameSrc => {
-        const name = parseName(nameSrc);
-        const key = name.weight > 1 ? `${name.name}/${name.weight}` : name.name;
-        if (!nameSet.has(key)) {
-          nameSet.add(key);
-          nameCounts[key] = 0;
-        }
-        nameCounts[key] += name.count;
-      });
-      const result = [];
-      Object.keys(nameCounts).forEach(key => {
-        if (nameCounts[key] > 1) {
-          result.push(`${key}*${nameCounts[key]}`);
-        } else {
-          result.push(key);
-        }
-      });
-
-      const oldValue = document.querySelector('#in_names').value;
-      const newValue = result.join(',');
-
-      if (oldValue !== newValue) {
-        document.querySelector('#in_names').value = newValue;
-        getReady();
-      }
-    });
-
+    document.querySelector('#btnAddTeam').addEventListener('click', addTeam);
     document.querySelector('#btnShuffle').addEventListener('click', () => {
       getReady();
     });
 
     document.querySelector('#btnStart').addEventListener('click', () => {
-      if (!ready) return;
+      if (!ready) {
+        alert('최소 1개 이상의 팀에 참가자를 입력해주세요.');
+        return;
+      }
       gtag && gtag('event', 'start', {
-        'event_category': 'roulette',
+        'event_category': 'team-roulette',
         'event_label': 'start',
-        'value': window.roulette.getCount(),
+        'value': allMembers.length,
       });
       window.roulette.start();
       document.querySelector('#settings').classList.add('hide');
       document.querySelector('#donate').classList.add('hide');
+      document.querySelector('#teamScoreboard').classList.add('visible');
+      resetTeamScores();
     });
 
     document.querySelector('#chkAutoRecording').addEventListener('change', (e) => {
@@ -188,7 +388,6 @@
 
     document.querySelector('#chkSkill').addEventListener('change', (e) => {
       window.options.useSkills = e.target.matches(':checked');
-      window.roulette.setWinningRank(window.options.winningRank);
     });
 
     document.querySelector('#chkDarkMode').addEventListener('change', (e) => {
@@ -197,35 +396,26 @@
       document.documentElement.classList.toggle('light', !window.options.darkMode);
     });
 
-    document.querySelector('#in_winningRank').addEventListener('change', (e) => {
-      const v = parseInt(e.target.value, 10);
-      winnerType = 'custom';
-      setWinnerRank(isNaN(v) ? 0 : v);
+    // 구슬이 골인할 때마다 팀 점수 업데이트
+    window.roulette.addEventListener('goal', (e) => {
+      const marbleName = e.detail?.marble?.name;
+      if (marbleName) {
+        updateTeamScore(marbleName);
+      }
     });
-
-    document.querySelector('.btn-last-winner').addEventListener('click', () => {
-      const total = window.roulette.getCount();
-      winnerType = 'last';
-      setWinnerRank(total);
-    });
-    document.querySelector('.btn-first-winner').addEventListener('click', () => {
-      winnerType = 'first';
-      setWinnerRank(1);
-    });
-
-    window.roulette.addEventListener('goal', () => {
+    
+    // 게임 종료
+    window.roulette.addEventListener('finished', () => {
       ready = false;
       setTimeout(() => {
         document.querySelector('#settings').classList.remove('hide');
         document.querySelector('#donate').classList.remove('hide');
-      }, 3000);
+      }, 5000);
     });
 
     window.roulette.addEventListener('message', (e) => {
       simpleToast(e.detail);
     });
-
-    document.querySelector('#btnShuffle').click();
 
     const maps = window.roulette.getMaps();
     const mapSelector = document.querySelector('#sltMap');
@@ -242,20 +432,8 @@
       window.roulette.setMap(index);
     });
 
-    // const checkDonateButtonLoaded = () => {
-    //   const btn = document.querySelector('span.bmc-btn-text');
-    //   if (!btn) {
-    //     setTimeout(checkDonateButtonLoaded, 100);
-    //   } else {
-    //     console.log('donation button has been loaded');
-    //     btn.setAttribute('data-trans', '');
-    //     window.translateElement(btn);
-    //   }
-    // };
-    // setTimeout(checkDonateButtonLoaded, 100);
-
-    const currentNotice = 4;
-    const noticeKey = 'lastViewedNotification';
+    const currentNotice = 1;
+    const noticeKey = 'tr_lastViewedNotification';
 
     const closeNotice = () => {
       document.querySelector('#notice').style.display = 'none';
@@ -263,16 +441,11 @@
     };
 
     const openNotice = () => {
-      console.log('openNotice');
       document.querySelector('#notice').style.display = 'flex';
     };
 
     document.querySelector('#closeNotice').addEventListener('click', () => {
       closeNotice();
-    });
-
-    document.querySelector('#btnNotice').addEventListener('click', () => {
-      openNotice();
     });
 
     function simpleToast(msg) {
@@ -281,7 +454,6 @@
       toast.innerHTML = msg;
 
       if (window.translateElement) {
-        console.log('try to translate');
         window.translateElement(toast);
       }
 
@@ -290,10 +462,89 @@
         document.body.removeChild(toast);
       }, 1200);
     }
+    
+    // 팀 점수 관리 함수
+    function resetTeamScores() {
+      teams.forEach(team => {
+        team.scores = {};
+        team.members.forEach(m => team.scores[m] = 0);
+      });
+      updateTeamScoreboard();
+    }
+    
+    function updateTeamScore(memberName) {
+      const teamInfo = findTeamByMember(memberName);
+      if (teamInfo) {
+        const team = teams[teamInfo.index];
+        if (!team.scores[memberName]) team.scores[memberName] = 0;
+        team.scores[memberName] += 10; // 고정 10점
+        updateTeamScoreboard();
+      }
+    }
+    
+    function updateTeamScoreboard() {
+      const container = document.querySelector('#teamScoreboard');
+      
+      // 팀별 평균 점수 계산
+      const teamStats = teams.filter(t => t.members.length > 0).map(team => {
+        const memberScores = team.members.map(m => team.scores[m] || 0);
+        const totalScore = memberScores.reduce((a, b) => a + b, 0);
+        const avgScore = team.members.length > 0 ? totalScore / team.members.length : 0;
+        return {
+          name: team.name,
+          avgScore: avgScore,
+          totalScore: totalScore,
+          memberCount: team.members.length
+        };
+      });
+      
+      // 평균 점수로 정렬
+      teamStats.sort((a, b) => b.avgScore - a.avgScore);
+      
+      // 팀 순위 HTML
+      let teamHTML = '<h3>🏆 팀 순위</h3>';
+      teamStats.forEach((stat, index) => {
+        const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+        teamHTML += `
+          <div class="team-rank-item">
+            <span class="rank">${rankEmoji}</span>
+            <span class="team-name">${stat.name}</span>
+            <span class="score">${stat.avgScore.toFixed(2)}</span>
+          </div>
+        `;
+      });
+      
+      // MVP 순위 (전체 개인 순위)
+      const allScores = [];
+      teams.forEach(team => {
+        team.members.forEach(member => {
+          allScores.push({
+            name: member,
+            score: team.scores[member] || 0,
+            team: team.name
+          });
+        });
+      });
+      allScores.sort((a, b) => b.score - a.score);
+      
+      let mvpHTML = '<div class="mvp-section"><h4>⭐ MVP TOP 3</h4>';
+      allScores.slice(0, 3).forEach((player, index) => {
+        const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+        mvpHTML += `
+          <div class="mvp-item">
+            <span class="mvp-rank">${rankEmoji}</span>
+            <span class="mvp-name">${player.name}</span>
+            <span class="mvp-score">${player.score}점</span>
+          </div>
+        `;
+      });
+      mvpHTML += '</div>';
+      
+      container.innerHTML = teamHTML + mvpHTML;
+    }
 
     const checkNotice = () => {
       const lastViewed = localStorage.getItem(noticeKey);
-      console.log('lastViewed', lastViewed);
       if (lastViewed === null || Number(lastViewed) < currentNotice) {
         openNotice();
       }
@@ -302,37 +553,35 @@
     checkNotice();
   }
 </script>
+
+<!-- 팀 순위표 -->
+<div id="teamScoreboard">
+  <h3>🏆 팀 순위</h3>
+  <div class="mvp-section">
+    <h4>⭐ MVP TOP 3</h4>
+  </div>
+</div>
+
 <div id="settings" class="settings">
   <div class="right">
     <div class="row">
       <label for='sltMap'>
         <i class="icon map"></i>
-        <span data-trans>Map</span>
+        <span>맵</span>
       </label>
       <select id="sltMap"></select>
     </div>
     <div class="row">
       <label for='chkAutoRecording'>
         <i class="icon record"></i>
-        <span data-trans>Recording</span>
+        <span>녹화</span>
       </label>
       <input type="checkbox" id="chkAutoRecording" />
     </div>
     <div class="row">
-      <label>
-        <i class="icon trophy"></i>
-        <span data-trans>The winner is</span>
-      </label>
-      <div class="btn-group">
-        <button class="btn-winner btn-first-winner active" data-trans>First</button>
-        <button class="btn-winner btn-last-winner" data-trans>Last</button>
-        <input type="number" id="in_winningRank" value="1" min="1" />
-      </div>
-    </div>
-    <div class="row">
       <label for='chkSkill'>
         <i class="icon bomb"></i>
-        <span data-trans>Using skills</span>
+        <span>스킬 사용</span>
       </label>
       <input type="checkbox" id="chkSkill" checked />
       <div class='theme'>
@@ -342,43 +591,42 @@
       </div>
     </div>
   </div>
-  <div class="left">
-    <h3 data-trans>Enter names below</h3>
-    <textarea id="in_names" placeholder="Input names separated by commas or line feed here" data-trans="placeholder">짱구*5, 짱아*10, 봉미선*3</textarea>
-    <div class="actions">
+  <div class="left" style="width: 500px;">
+    <h3>팀 설정</h3>
+    <div id="teamSetup" class="team-setup">
+      <!-- 팀 입력 필드들이 여기에 동적으로 생성됨 -->
+    </div>
+    <button id="btnAddTeam">+ 팀 추가 (최대 6개)</button>
+    <div class="actions" style="margin-top: 15px;">
       <button id="btnNotice">
         <i class="icon megaphone"></i>
       </button>
-      <a href='https://marblerouletteshop.com' target='_blank' id="btnShop" class='btn new' title='MarbleRoulette Shop'>
-        <img src='assets/images/marblerouletteshop.png' />
-      </a>
       <div class="sep"></div>
       <button id="btnShuffle">
         <i class="icon shuffle"></i>
-        <span data-trans>Shuffle</span>
+        <span>준비</span>
       </button>
       <button id="btnStart">
         <i class="icon play"></i>
-        <span data-trans>Start</span>
+        <span>시작</span>
       </button>
     </div>
   </div>
 </div>
+
 <div id="notice">
-  <h1>Notice</h1>
+  <h1>안내</h1>
   <div class="notice-body">
-    <h2>마블 룰렛 샵 오픈!</h2>
-    <p>원하는 구슬을 예쁘게 꾸밀 수 있는 마블 룰렛 샵이 오픈했습니다!</p>
-    <p>
-      <a href='https://marblerouletteshop.com' target='_blank' class='shop-button holographic'><img
-        src='assets/images/marblerouletteshop.png' width='125' height='125' /> 구슬 꾸미러 가기</a>
-    </p>
+    <h2>팀 룰렛에 오신 것을 환영합니다!</h2>
+    <p>팀 단위로 구슬 경쟁을 할 수 있습니다.</p>
+    <p>각 팀에 참가자를 배정하고 시작하면, 실시간으로 팀 평균 점수와 MVP 순위가 표시됩니다.</p>
   </div>
   <div class="notice-action">
-    <button id="closeNotice" data-trans>Close</button>
+    <button id="closeNotice">닫기</button>
   </div>
 </div>
-<div class="copyright">&copy; 2022-2026.<a href="https://lazygyu.net" target="_blank">lazygyu</a> <span data-trans>This program is freeware and may be used freely anywhere, including in broadcasts and videos.</span>
+
+<div class="copyright">&copy; 2025-2026.<a href="https://github.com/bomhyang22" target="_blank">bomhyang22</a> <span>원본: <a href="https://lazygyu.github.io/roulette/" target="_blank">lazygyu/roulette</a></span>
 </div>
 </body>
 </html>
