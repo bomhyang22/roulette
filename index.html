@@ -629,12 +629,13 @@
       const marbleName = detail.marble?.name;
       const isLast = detail.isLast;
       const rank = detail.rank;
+      const total = detail.total;
 
-      console.log('[DEBUG] goal event:', { marbleName, isLast, rank });
+      console.log('[DEBUG] goal event:', { marbleName, isLast, rank, total });
 
-      if (marbleName) {
-        updateTeamScore(marbleName);
-        finishedMarbles = rank || finishedMarbles + 1;
+      if (marbleName && rank && total) {
+        updateTeamScore(marbleName, rank, total);
+        finishedMarbles = rank;
       }
 
       // 마지막 구슬이면 종료 처리
@@ -660,14 +661,20 @@
     });
 
     // 팀 점수 관리 함수
-    function updateTeamScore(memberName) {
-      console.log('[DEBUG] updateTeamScore called:', memberName);
+    function updateTeamScore(memberName, rank, total) {
+      console.log('[DEBUG] updateTeamScore called:', memberName, 'rank:', rank, 'total:', total);
+      
+      // 등수에 따른 점수 계산
+      const score = getScoreByRank(rank, total);
+      console.log('[DEBUG] Calculated score for rank', rank, ':', score);
+      
       const teamInfo = findTeamByMember(memberName);
       console.log('[DEBUG] teamInfo:', teamInfo);
+      
       if (teamInfo) {
         const team = teams[teamInfo.index];
         if (!team.scores[memberName]) team.scores[memberName] = 0;
-        team.scores[memberName] += 10;
+        team.scores[memberName] += score; // 등수에 따른 점수 부여!
         console.log('[DEBUG] Updated score:', memberName, team.scores[memberName], 'Team:', team.name);
         // 실시간 업데이트를 위해 roulette에 데이터 전달
         if (window.roulette) {
@@ -675,6 +682,13 @@
         }
         updateTeamScoreboard();
       }
+    }
+    
+    // 등수별 점수 가져오기
+    function getScoreByRank(rank, total) {
+      const scores = calculateRankScores(total);
+      const scoreData = scores.find(s => s.rank === rank);
+      return scoreData ? scoreData.score : 0;
     }
 
     function updateTeamScoreboard() {
