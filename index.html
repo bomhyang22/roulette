@@ -284,29 +284,48 @@
     customLast: 200      // 수동 모드: 꼴찌 점수
   };
   
-  // 등수별 점수 계산
+  // 등수별 점수 계산 (방식 B: 총점 2000점 고정)
   function calculateRankScores(totalMembers) {
     const scores = [];
-    let firstScore, lastScore;
+    const TOTAL_POINTS = 2000; // 총점 고정
     
     if (scoreSettings.mode === 'auto') {
-      // 자동 모드: 인원수 비례
-      firstScore = totalMembers * scoreSettings.baseMultiplier;
-      lastScore = totalMembers * scoreSettings.lastMultiplier;
+      // 자동 모드: 고정 비율
+      const firstScore = 300;   // 1등: 15%
+      const secondScore = 240;  // 2등: 12%
+      const thirdScore = 200;   // 3등: 10%
+      const lastScore = 400;    // 꼴찌: 20% (1등의 2배)
+      
+      // 1~3등 고정
+      scores.push({ rank: 1, score: firstScore, isLast: false });
+      scores.push({ rank: 2, score: secondScore, isLast: false });
+      scores.push({ rank: 3, score: thirdScore, isLast: false });
+      
+      // 4등 ~ (꼴찌-1): 3등과 꼴찌 사이 등차수열
+      const middleCount = totalMembers - 4; // 4등부터 꼴찌 전까지
+      if (middleCount > 0) {
+        const step = (lastScore - thirdScore) / (middleCount + 1);
+        for (let i = 4; i < totalMembers; i++) {
+          const rank = i;
+          const score = Math.round(thirdScore + ((i - 3) * step));
+          scores.push({ rank, score, isLast: false });
+        }
+      }
+      
+      // 꼴찌
+      scores.push({ rank: totalMembers, score: lastScore, isLast: true });
     } else {
       // 수동 모드: 사용자 설정값
-      firstScore = scoreSettings.customFirst;
-      lastScore = scoreSettings.customLast;
-    }
-    
-    // 중간 등수는 등차수열로 계산
-    const decrement = (lastScore - firstScore) / (totalMembers - 1);
-    
-    for (let i = 1; i <= totalMembers; i++) {
-      const rank = i;
-      const isLast = (i === totalMembers);
-      let score = Math.round(firstScore + ((i - 1) * decrement));
-      scores.push({ rank, score, isLast });
+      const firstScore = scoreSettings.customFirst;
+      const lastScore = scoreSettings.customLast;
+      const step = (lastScore - firstScore) / (totalMembers - 1);
+      
+      for (let i = 1; i <= totalMembers; i++) {
+        const rank = i;
+        const isLast = (i === totalMembers);
+        const score = Math.round(firstScore + ((i - 1) * step));
+        scores.push({ rank, score, isLast });
+      }
     }
     return scores;
   }
