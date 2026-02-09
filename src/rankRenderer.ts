@@ -145,10 +145,11 @@ export class RankRenderer implements UIObject {
   ) {
     if (this.teams.length === 0) return;
 
-    const startX = width - 5;
     const lineHeight = 18;
-    const boxWidth = 155;
-    const boxX = width - boxWidth - 5;
+    // 팀 순위표를 개인 순위표 왼쪽에 배치
+    const teamBoxWidth = 145;
+    const teamBoxX = width - 310; // 개인 순위표 (width-150) 왼쪽에 배치
+    const startX = teamBoxX + teamBoxWidth - 5;
 
     // 팀별 평균 점수 계산
     const teamStats = this.teams.filter(t => t.members.length > 0).map(team => {
@@ -173,27 +174,26 @@ export class RankRenderer implements UIObject {
     allScores.sort((a, b) => b.score - a.score);
     const topMVP = allScores.slice(0, 3);
 
-    // 높이 계산: 개인 순위표 아래에 배치
-    const personalListHeight = (this.marbles.length + this.winners.length) * this.fontHeight + this.fontHeight;
+    // 높이 계산
     const teamBoxHeight = (teamStats.length + topMVP.length + 3) * lineHeight + 20;
-    const boxY = Math.max(250, personalListHeight + 60); // 개인 순위표 아래에 여유있게 배치
+    const boxY = 10; // 화면 상단에 고정
 
     ctx.save();
 
     // 배경 박스
     ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-    ctx.fillRect(boxX, boxY, boxWidth, teamBoxHeight);
+    ctx.fillRect(teamBoxX, boxY, teamBoxWidth, teamBoxHeight);
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(boxX, boxY, boxWidth, teamBoxHeight);
+    ctx.strokeRect(teamBoxX, boxY, teamBoxWidth, teamBoxHeight);
 
     let currentY = boxY + 20;
 
     // 타이틀: 팀 순위
-    ctx.font = 'bold 12pt sans-serif';
+    ctx.font = 'bold 11pt sans-serif';
     ctx.fillStyle = '#ffd700';
     ctx.textAlign = 'center';
-    ctx.fillText('🏆 팀 순위', width - boxWidth / 2 - 2, currentY);
+    ctx.fillText('🏆 팀 순위', teamBoxX + teamBoxWidth / 2, currentY);
     currentY += lineHeight + 5;
 
     // 팀 순위 표시
@@ -202,14 +202,14 @@ export class RankRenderer implements UIObject {
       const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
       const text = `${rankEmoji} ${stat.name}`;
 
-      ctx.font = 'bold 10pt sans-serif';
+      ctx.font = 'bold 9pt sans-serif';
       ctx.fillStyle = index === 0 ? '#ff6b6b' : index === 1 ? '#4ecdc4' : index === 2 ? '#45b7d1' : '#fff';
-      ctx.fillText(text, startX - 30, currentY);
+      ctx.fillText(text, startX - 5, currentY);
 
       // 점수
-      ctx.font = '9pt sans-serif';
+      ctx.font = '8pt sans-serif';
       ctx.fillStyle = '#ffd700';
-      ctx.fillText(`${stat.avgScore.toFixed(2)}`, startX - 5, currentY);
+      ctx.fillText(`${stat.avgScore.toFixed(2)}`, startX + 25, currentY);
 
       currentY += lineHeight;
     });
@@ -217,10 +217,10 @@ export class RankRenderer implements UIObject {
     currentY += 8;
 
     // 타이틀: MVP
-    ctx.font = 'bold 11pt sans-serif';
+    ctx.font = 'bold 10pt sans-serif';
     ctx.fillStyle = '#ffd700';
     ctx.textAlign = 'center';
-    ctx.fillText('⭐ MVP TOP 3', width - boxWidth / 2 - 2, currentY);
+    ctx.fillText('⭐ MVP TOP 3', teamBoxX + teamBoxWidth / 2, currentY);
     currentY += lineHeight;
 
     // MVP 표시
@@ -229,15 +229,15 @@ export class RankRenderer implements UIObject {
       const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
       const text = `${rankEmoji} ${player.name}`;
 
-      ctx.font = '9pt sans-serif';
+      ctx.font = '8pt sans-serif';
       ctx.fillStyle = index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : '#cd7f32';
-      ctx.fillText(text, startX - 30, currentY);
+      ctx.fillText(text, startX - 5, currentY);
 
       // 점수
       ctx.fillStyle = '#fff';
+      ctx.font = '7pt sans-serif';
+      ctx.fillText(`${player.score}점`, startX + 25, currentY);
       ctx.font = '8pt sans-serif';
-      ctx.fillText(`${player.score}점`, startX - 5, currentY);
-      ctx.font = '9pt sans-serif';
 
       currentY += lineHeight - 2;
     });
