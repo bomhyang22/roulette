@@ -180,12 +180,12 @@ export class RankRenderer implements UIObject {
 
     ctx.save();
 
-    // 배경 박스
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-    ctx.fillRect(teamBoxX, boxY, teamBoxWidth, teamBoxHeight);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(teamBoxX, boxY, teamBoxWidth, teamBoxHeight);
+    // 배경 박스 제거 - 텍스트만 표시
+    // ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    // ctx.fillRect(teamBoxX, boxY, teamBoxWidth, teamBoxHeight);
+    // ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    // ctx.lineWidth = 1;
+    // ctx.strokeRect(teamBoxX, boxY, teamBoxWidth, teamBoxHeight);
 
     let currentY = boxY + 20;
 

@@ -277,28 +277,69 @@
   
   // ===== 점수 배점 설정 =====
   let scoreSettings = {
-    baseScore: 100,      // 1등 기본 점수
-    decrement: 10,       // 등수별 감소 점수
-    lastPlaceBonus: 500  // 꼴찌 별도 점수
+    mode: 'auto',        // 'auto' 또는 'manual'
+    baseMultiplier: 10,  // 1등 점수 = 인원수 × 10
+    lastMultiplier: 20,  // 꼴찌 점수 = 인원수 × 20 (2배)
+    customFirst: 100,    // 수동 모드: 1등 점수
+    customLast: 200      // 수동 모드: 꼴찌 점수
   };
   
   // 등수별 점수 계산
   function calculateRankScores(totalMembers) {
     const scores = [];
+    let firstScore, lastScore;
+    
+    if (scoreSettings.mode === 'auto') {
+      // 자동 모드: 인원수 비례
+      firstScore = totalMembers * scoreSettings.baseMultiplier;
+      lastScore = totalMembers * scoreSettings.lastMultiplier;
+    } else {
+      // 수동 모드: 사용자 설정값
+      firstScore = scoreSettings.customFirst;
+      lastScore = scoreSettings.customLast;
+    }
+    
+    // 중간 등수는 등차수열로 계산
+    const decrement = (lastScore - firstScore) / (totalMembers - 1);
+    
     for (let i = 1; i <= totalMembers; i++) {
       const rank = i;
       const isLast = (i === totalMembers);
-      let score = scoreSettings.baseScore - ((rank - 1) * scoreSettings.decrement);
-      if (isLast) {
-        score = scoreSettings.lastPlaceBonus; // 꼴찌는 별도 점수
-      }
+      let score = Math.round(firstScore + ((i - 1) * decrement));
       scores.push({ rank, score, isLast });
     }
     return scores;
   }
   
+  // 점수 설정 업데이트
+  function updateScoreSettings() {
+    const modeSelect = document.querySelector('#scoreMode');
+    const firstInput = document.querySelector('#scoreFirst');
+    const lastInput = document.querySelector('#scoreLast');
+    
+    if (modeSelect) {
+      scoreSettings.mode = modeSelect.value;
+    }
+    if (firstInput) {
+      scoreSettings.customFirst = parseInt(firstInput.value) || 100;
+    }
+    if (lastInput) {
+      scoreSettings.customLast = parseInt(lastInput.value) || 200;
+    }
+    
+    // 자동 모드일 때는 입력값 업데이트
+    if (scoreSettings.mode === 'auto' && allMembers.length > 0) {
+      const totalMembers = allMembers.length;
+      const autoFirst = totalMembers * scoreSettings.baseMultiplier;
+      const autoLast = totalMembers * scoreSettings.lastMultiplier;
+      if (firstInput) firstInput.value = autoFirst;
+      if (lastInput) lastInput.value = autoLast;
+    }
+  }
+  
   // 점수표 표시
   function showScoreTable() {
+    updateScoreSettings();
     const totalMembers = allMembers.length;
     if (totalMembers === 0) {
       alert('먼저 팀원을 입력해주세요.');
@@ -307,7 +348,7 @@
     
     const scores = calculateRankScores(totalMembers);
     let tableHTML = '<div style="max-height: 400px; overflow-y: auto;"><h3>🏆 등수별 점수표</h3>';
-    tableHTML += '<p style="font-size: 12px; color: #aaa;">* 꼴찌는 별도 점수 적용</p>';
+    tableHTML += '<p style="font-size: 12px; color: #aaa;">* 꼴찌는 2배 점수</p>';
     tableHTML += '<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">';
     tableHTML += '<tr style="background: rgba(255,215,0,0.2);"><th style="padding: 8px; border: 1px solid #555;">등수</th><th style="padding: 8px; border: 1px solid #555;">점수</th></tr>';
     
@@ -497,6 +538,43 @@
       updateAllMembers(); // 최신 인원 정보로 업데이트
       showScoreTable();
     });
+    
+    // 점수 설정 모드 변경 이벤트
+    const scoreModeSelect = document.querySelector('#scoreMode');
+    const scoreFirstInput = document.querySelector('#scoreFirst');
+    const scoreLastInput = document.querySelector('#scoreLast');
+    
+    if (scoreModeSelect) {
+      scoreModeSelect.addEventListener('change', () => {
+        const isAuto = scoreModeSelect.value === 'auto';
+        scoreFirstInput.readOnly = isAuto;
+        scoreLastInput.readOnly = isAuto;
+        
+        if (isAuto && allMembers.length > 0) {
+          // 자동 모드: 인원수 기준으로 업데이트
+          const totalMembers = allMembers.length;
+          scoreFirstInput.value = totalMembers * scoreSettings.baseMultiplier;
+          scoreLastInput.value = totalMembers * scoreSettings.lastMultiplier;
+        }
+        
+        // 스타일 업데이트
+        const readonlyStyle = isAuto ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)';
+        scoreFirstInput.style.background = readonlyStyle;
+        scoreLastInput.style.background = readonlyStyle;
+      });
+    }
+    
+    // 점수 입력 변경 이벤트
+    if (scoreFirstInput) {
+      scoreFirstInput.addEventListener('change', () => {
+        scoreSettings.customFirst = parseInt(scoreFirstInput.value) || 100;
+      });
+    }
+    if (scoreLastInput) {
+      scoreLastInput.addEventListener('change', () => {
+        scoreSettings.customLast = parseInt(scoreLastInput.value) || 200;
+      });
+    }
 
     document.querySelector('#btnShuffle').addEventListener('click', () => {
       getReady();
@@ -858,9 +936,25 @@
     <!-- 점수 배점 설정 -->
     <div class="score-settings" style="margin-top: 15px; padding: 12px; background: rgba(255,215,0,0.1); border-radius: 8px; border: 1px solid rgba(255,215,0,0.3);">
       <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #ffd700;">🏆 점수 배점 설정</h4>
-      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <label style="font-size: 12px; color: #aaa; min-width: 40px;">모드:</label>
+          <select id="scoreMode" style="flex: 1; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px; font-size: 12px;">
+            <option value="auto">자동 (인원수 비례)</option>
+            <option value="manual">수동 설정</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <label style="font-size: 12px; color: #aaa; min-width: 40px;">1등:</label>
+          <input type="number" id="scoreFirst" value="100" style="flex: 1; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px; font-size: 12px;" readonly>
+          <span style="font-size: 12px; color: #666;">점</span>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <label style="font-size: 12px; color: #aaa; min-width: 40px;">꼴찌:</label>
+          <input type="number" id="scoreLast" value="200" style="flex: 1; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px; font-size: 12px;" readonly>
+          <span style="font-size: 12px; color: #666;">점</span>
+        </div>
         <button id="btnShowScoreTable" style="padding: 8px 16px; background: #ffd700; color: #000; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">📋 점수표 보기</button>
-        <span style="font-size: 12px; color: #aaa;">* 꼴찌 별도 점수 적용</span>
       </div>
     </div>
     
