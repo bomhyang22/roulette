@@ -274,6 +274,57 @@
   // ===== 팀 데이터 관리 =====
   let teams = [];
   let teamCount = 2; // 기본 2개 팀
+  
+  // ===== 점수 배점 설정 =====
+  let scoreSettings = {
+    baseScore: 100,      // 1등 기본 점수
+    decrement: 10,       // 등수별 감소 점수
+    lastPlaceBonus: 500  // 꼴찌 별도 점수
+  };
+  
+  // 등수별 점수 계산
+  function calculateRankScores(totalMembers) {
+    const scores = [];
+    for (let i = 1; i <= totalMembers; i++) {
+      const rank = i;
+      const isLast = (i === totalMembers);
+      let score = scoreSettings.baseScore - ((rank - 1) * scoreSettings.decrement);
+      if (isLast) {
+        score = scoreSettings.lastPlaceBonus; // 꼴찌는 별도 점수
+      }
+      scores.push({ rank, score, isLast });
+    }
+    return scores;
+  }
+  
+  // 점수표 표시
+  function showScoreTable() {
+    const totalMembers = allMembers.length;
+    if (totalMembers === 0) {
+      alert('먼저 팀원을 입력해주세요.');
+      return;
+    }
+    
+    const scores = calculateRankScores(totalMembers);
+    let tableHTML = '<div style="max-height: 400px; overflow-y: auto;"><h3>🏆 등수별 점수표</h3>';
+    tableHTML += '<p style="font-size: 12px; color: #aaa;">* 꼴찌는 별도 점수 적용</p>';
+    tableHTML += '<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">';
+    tableHTML += '<tr style="background: rgba(255,215,0,0.2);"><th style="padding: 8px; border: 1px solid #555;">등수</th><th style="padding: 8px; border: 1px solid #555;">점수</th></tr>';
+    
+    scores.forEach(s => {
+      const rowStyle = s.isLast ? 'background: rgba(255,100,100,0.3); color: #ff6b6b; font-weight: bold;' : '';
+      const rankText = s.isLast ? '🥉 꼴찌' : `${s.rank}등`;
+      tableHTML += `<tr style="${rowStyle}"><td style="padding: 8px; border: 1px solid #555; text-align: center;">${rankText}</td><td style="padding: 8px; border: 1px solid #555; text-align: center;">${s.score}점</td></tr>`;
+    });
+    
+    tableHTML += '</table></div>';
+    
+    // 모달로 표시
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 2px solid #ffd700; border-radius: 12px; padding: 20px; z-index: 100000; color: #fff; min-width: 280px; max-width: 90vw;';
+    modal.innerHTML = tableHTML + '<button onclick="this.parentElement.remove()" style="margin-top: 15px; padding: 10px 20px; background: #ffd700; color: #000; border: none; border-radius: 6px; cursor: pointer; width: 100%;">닫기</button>';
+    document.body.appendChild(modal);
+  }
 
   // 팀 데이터 구조
   // teams = [
@@ -440,6 +491,13 @@
     }
 
     document.querySelector('#btnAddTeam').addEventListener('click', addTeam);
+    
+    // 점수표 보기 버튼 이벤트
+    document.querySelector('#btnShowScoreTable').addEventListener('click', () => {
+      updateAllMembers(); // 최신 인원 정보로 업데이트
+      showScoreTable();
+    });
+
     document.querySelector('#btnShuffle').addEventListener('click', () => {
       getReady();
     });
@@ -796,6 +854,16 @@
     <div id="teamSetup" class="team-setup">
       <!-- 팀 입력 필드들이 여기에 동적으로 생성됨 -->
     </div>
+    
+    <!-- 점수 배점 설정 -->
+    <div class="score-settings" style="margin-top: 15px; padding: 12px; background: rgba(255,215,0,0.1); border-radius: 8px; border: 1px solid rgba(255,215,0,0.3);">
+      <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #ffd700;">🏆 점수 배점 설정</h4>
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <button id="btnShowScoreTable" style="padding: 8px 16px; background: #ffd700; color: #000; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">📋 점수표 보기</button>
+        <span style="font-size: 12px; color: #aaa;">* 꼴찌 별도 점수 적용</span>
+      </div>
+    </div>
+    
     <button id="btnAddTeam">+ 팀 추가 (최대 6개)</button>
     <div class="actions" style="margin-top: 15px;">
       <button id="btnNotice">
