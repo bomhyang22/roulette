@@ -43,26 +43,18 @@ export class RankRenderer implements UIObject {
   onDblClick(e?: MouseEventArgs) {
     if (e) {
       if (navigator.clipboard) {
-        // 팀 순위 복사
         const tsv: string[] = [];
-        
-        // 팀별 평균 점수 계산
-        const teamStats = this.teams.filter(t => t.members.length > 0).map(team => {
-          const memberScores = team.members.map(m => team.scores[m] || 0);
-          const totalScore = memberScores.reduce((a, b) => a + b, 0);
-          const avgScore = team.members.length > 0 ? totalScore / team.members.length : 0;
-          return { name: team.name, avgScore: avgScore.toFixed(2) };
-        });
-        teamStats.sort((a, b) => parseFloat(b.avgScore) - parseFloat(a.avgScore));
-        
-        tsv.push(['Rank', 'Team', 'Avg Score'].join('\t'));
-        teamStats.forEach((stat, idx) => {
-          tsv.push([(idx + 1).toString(), stat.name, stat.avgScore].join('\t'));
-        });
+        let rank = 0;
+        tsv.push(...[...this.winners, ...this.marbles].map((m) => {
+          rank++;
+          return [rank.toString(), m.name, rank - 1 === this.winnerRank ? '☆' : ''].join('\t');
+        }));
+
+        tsv.unshift(['Rank', 'Name', 'Winner'].join('\t'));
 
         navigator.clipboard.writeText(tsv.join('\n')).then(() => {
           if (this.messageHandler) {
-            this.messageHandler('팀 순위가 복사되었습니다');
+            this.messageHandler('The result has been copied');
           }
         });
       }
@@ -80,7 +72,83 @@ export class RankRenderer implements UIObject {
     height: number,
   ) {
     const startX = width - 5;
+    const startY = Math.max(-this.fontHeight, this._currentY - height / 2);
+    this.maxY = Math.max(
+      0,
+      (marbles.length + winners.length) * this.fontHeight + this.fontHeight,
+    );
+    this._currentWinner = winners.length;
+
+    this.winners = winners;
+    this.marbles = marbles;
+    this.winnerRank = winnerRank;
+
+    ctx.save();
+    ctx.textAlign = 'right';
+    ctx.font = '10pt sans-serif';
+    ctx.fillStyle = '#666';
+    ctx.fillText(`${winners.length} / ${winners.length + marbles.length}`, width - 5, this.fontHeight);
+
+    ctx.beginPath();
+    ctx.rect(width - 150, this.fontHeight + 2, width, this.maxY);
+    ctx.clip();
+
+    ctx.translate(0, -startY);
+    ctx.font = 'bold 11pt sans-serif';
+    if (theme.rankStroke) {
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = theme.rankStroke;
+    }
+    winners.forEach((marble: { hue: number, name: string }, rank: number) => {
+      const y = rank * this.fontHeight;
+      if (y >= startY && y <= startY + ctx.canvas.height) {
+        ctx.fillStyle = `hsl(${marble.hue} 100% ${theme.marbleLightness}`;
+        ctx.strokeText(
+          `${rank === winnerRank ? '☆' : '\u2714'} ${marble.name} #${rank + 1}`,
+          startX,
+          20 + y,
+        );
+        ctx.fillText(
+          `${rank === winnerRank ? '☆' : '\u2714'} ${marble.name} #${rank + 1}`,
+          startX,
+          20 + y,
+        );
+      }
+    });
+    ctx.font = '10pt sans-serif';
+    marbles.forEach((marble: { hue: number; name: string }, rank: number) => {
+      const y = (rank + winners.length) * this.fontHeight;
+      if (y >= startY && y <= startY + ctx.canvas.height) {
+        ctx.fillStyle = `hsl(${marble.hue} 100% ${theme.marbleLightness}`;
+        ctx.strokeText(
+          `${marble.name} #${rank + 1 + winners.length}`,
+          startX,
+          20 + y,
+        );
+        ctx.fillText(
+          `${marble.name} #${rank + 1 + winners.length}`,
+          startX,
+          20 + y,
+        );
+      }
+    });
+    ctx.restore();
+
+    // 팀 순위 표시 (개인 순위표 아래에)
+    this.renderTeamStats(ctx, width, height);
+  }
+
+  private renderTeamStats(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+  ) {
+    if (this.teams.length === 0) return;
+
+    const startX = width - 5;
     const lineHeight = 18;
+    const boxWidth = 155;
+    const boxX = width - boxWidth - 5;
     
     // 팀별 평균 점수 계산
     const teamStats = this.teams.filter(t => t.members.length > 0).map(team => {
@@ -105,91 +173,71 @@ export class RankRenderer implements UIObject {
     allScores.sort((a, b) => b.score - a.score);
     const topMVP = allScores.slice(0, 3);
 
-    this.maxY = Math.max(0, (teamStats.length + topMVP.length + 2) * lineHeight);
-    this._currentWinner = winners.length;
-
-    this.winners = winners;
-    this.marbles = marbles;
-    this.winnerRank = winnerRank;
+    const totalHeight = (teamStats.length + topMVP.length + 3) * lineHeight + 20;
+    const boxY = height - totalHeight - 10;
 
     ctx.save();
-    ctx.textAlign = 'right';
     
-    // 배경
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    ctx.fillRect(width - 160, 0, 160, height);
-    
-    // 클리핑 영역
-    ctx.beginPath();
-    ctx.rect(width - 160, 0, 160, height);
-    ctx.clip();
+    // 배경 박스
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    ctx.fillRect(boxX, boxY, boxWidth, totalHeight);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(boxX, boxY, boxWidth, totalHeight);
 
-    let currentY = 20;
+    let currentY = boxY + 20;
 
     // 타이틀: 팀 순위
     ctx.font = 'bold 12pt sans-serif';
     ctx.fillStyle = '#ffd700';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    ctx.strokeText('🏆 팀 순위', startX, currentY);
-    ctx.fillText('🏆 팀 순위', startX, currentY);
+    ctx.textAlign = 'center';
+    ctx.fillText('🏆 팀 순위', width - boxWidth / 2 - 2, currentY);
     currentY += lineHeight + 5;
 
     // 팀 순위 표시
-    ctx.font = 'bold 11pt sans-serif';
+    ctx.textAlign = 'right';
     teamStats.forEach((stat, index) => {
       const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
       const text = `${rankEmoji} ${stat.name}`;
-      const scoreText = `${stat.avgScore.toFixed(2)}`;
       
+      ctx.font = 'bold 10pt sans-serif';
       ctx.fillStyle = index === 0 ? '#ff6b6b' : index === 1 ? '#4ecdc4' : index === 2 ? '#45b7d1' : '#fff';
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 3;
-      ctx.strokeText(text, startX, currentY);
-      ctx.fillText(text, startX, currentY);
+      ctx.fillText(text, startX - 30, currentY);
       
       // 점수
-      ctx.font = '10pt sans-serif';
+      ctx.font = '9pt sans-serif';
       ctx.fillStyle = '#ffd700';
-      ctx.strokeText(scoreText, startX, currentY + 14);
-      ctx.fillText(scoreText, startX, currentY + 14);
-      ctx.font = 'bold 11pt sans-serif';
+      ctx.fillText(`${stat.avgScore.toFixed(2)}`, startX - 5, currentY);
       
-      currentY += lineHeight + 12;
+      currentY += lineHeight;
     });
 
-    currentY += 10;
+    currentY += 8;
 
     // 타이틀: MVP
-    ctx.font = 'bold 12pt sans-serif';
+    ctx.font = 'bold 11pt sans-serif';
     ctx.fillStyle = '#ffd700';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    ctx.strokeText('⭐ MVP TOP 3', startX, currentY);
-    ctx.fillText('⭐ MVP TOP 3', startX, currentY);
-    currentY += lineHeight + 5;
+    ctx.textAlign = 'center';
+    ctx.fillText('⭐ MVP TOP 3', width - boxWidth / 2 - 2, currentY);
+    currentY += lineHeight;
 
     // MVP 표시
-    ctx.font = '10pt sans-serif';
+    ctx.textAlign = 'right';
     topMVP.forEach((player, index) => {
       const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
       const text = `${rankEmoji} ${player.name}`;
-      const scoreText = `${player.score}점`;
       
+      ctx.font = '9pt sans-serif';
       ctx.fillStyle = index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : '#cd7f32';
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 3;
-      ctx.strokeText(text, startX, currentY);
-      ctx.fillText(text, startX, currentY);
+      ctx.fillText(text, startX - 30, currentY);
       
       // 점수
       ctx.fillStyle = '#fff';
+      ctx.font = '8pt sans-serif';
+      ctx.fillText(`${player.score}점`, startX - 5, currentY);
       ctx.font = '9pt sans-serif';
-      ctx.strokeText(scoreText, startX, currentY + 12);
-      ctx.fillText(scoreText, startX, currentY + 12);
-      ctx.font = '10pt sans-serif';
       
-      currentY += lineHeight + 8;
+      currentY += lineHeight - 2;
     });
 
     ctx.restore();
@@ -201,6 +249,8 @@ export class RankRenderer implements UIObject {
     }
     if (this._userMoved > 0) {
       this._userMoved -= deltaTime;
+    } else {
+      this._targetY = this._currentWinner * this.fontHeight + this.fontHeight;
     }
     if (this._currentY !== this._targetY) {
       this._currentY += (this._targetY - this._currentY) * (deltaTime / 250);
