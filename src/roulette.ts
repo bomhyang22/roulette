@@ -173,13 +173,10 @@ export class Roulette extends EventTarget {
       if (marble.y > this._stage.goalY) {
         this._winners.push(marble);
 
-        // 팀 점수 업데이트
-        this._updateTeamScore(marble.name);
-
         // 모든 구슬이 골인했는지 확인
         const isLastMarble = this._winners.length === this._totalMarbleCount;
 
-        // goal 이벤트 발행 (매 골인마다)
+        // goal 이벤트 발행 (매 골인마다) - index.html에서 점수 계산 처리
         this.dispatchEvent(
           new CustomEvent('goal', {
             detail: {
